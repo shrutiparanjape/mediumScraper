@@ -8,12 +8,16 @@
 
 # Instructions to run Docker Image on local machine
     Image is already built and pushed to docker hub, run below commands to pull the image and run docker in local machine. 
-    docker pull 9993shruti/medium_scarper
+    docker pull 9993shruti/medium_scarper:shruti
     docker run -p 3001:3001 -d 9993shruti/medium_scarper:shruti
 
     For logs
     docker ps -a
     docker logs --follow <CONTAINER_ID>
+
+# Docker compose and run on local machine
+    docker-compose build
+    docker-compose up
 
 # APIs available
     To start scraping of the website - localhost:3001/api/startScraping

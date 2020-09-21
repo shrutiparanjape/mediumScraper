@@ -1,0 +1,16 @@
+version: "3"
+services:
+    app:
+        container_name: mediumScraper
+        restart: always
+        build: .
+        image: 9993shruti/medium_scarper:shruti
+        ports: 
+            - "3001:3001"
+        links: 
+            - mongo
+    mongo:
+        container_name: mongo
+        image: mongo
+        ports: 
+            - "27018:27017"
