@@ -16,6 +16,7 @@ let completedUrlJson = {}
  */
 async function getUrlList (urlQueue) {
     try {
+        console.log("Inside getUrlList function")
         let allUrls = [];
 
         let url = urlQueue.shift(); // Fetch single url from the list to start the scraping of data
@@ -63,6 +64,7 @@ async function getUrlList (urlQueue) {
  */
 async function processUrls (allUrls) {
     try {
+        console.log("Inside processUrls function")
         allUrls.forEach(newUrl => {
             // Direct match original url with exisitng urls.
             if(completedQueue.includes(newUrl)){
@@ -125,8 +127,12 @@ async function processUrls (allUrls) {
     }
 }
 
+/**
+ * @description Initial function to start scraping
+ */
 async function startScraping (req, res) {
     try {
+        console.log("Start the Scraping Process")
         inQueue.push(scrapedUrl);
         // Initial count for the medium.com url
         completedUrlJson = {
@@ -144,16 +150,26 @@ async function startScraping (req, res) {
     }
 }
 
+/**
+ * @description Function to save or update to db
+ * @param completedUrlJson JSON Object with url details like count and params
+ */
 async function updateDB (completedUrlJson) {
-    Object.keys(completedUrlJson).forEach ( key => {
-        let query = { url: key },
-        urlUpdate = { url: key, ...completedUrlJson[key]},
-        options = { upsert: true, new: true };
-        urlModel.findOneAndUpdate(query, urlUpdate, options, function(error, result) {
-            if (error) return;
-            else if (result) return;
-        });
-    })
+    try{
+        console.log("Inside updateDB function")
+        Object.keys(completedUrlJson).forEach ( key => {
+            let query = { url: key },
+            urlUpdate = { url: key, ...completedUrlJson[key]},
+            options = { upsert: true, new: true };
+            urlModel.findOneAndUpdate(query, urlUpdate, options, function(error, result) {
+                if (error) return;
+                else if (result) return;
+            });
+        })
+    } catch (error) {
+        console.log("::updateDB error", error)
+        throw error;
+    }
 }
 
 module.exports = {

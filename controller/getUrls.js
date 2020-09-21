@@ -1,7 +1,11 @@
 const urlSchema = require('../model/urlSchema');
 
+/**
+ * @description Function to fetch all urls from DB
+ */
 getUrls = async (req, res)=>{
     try {
+        console.log("Fetching URLs and details from DB")
         let urls = await urlSchema.find({});
         if(urls && urls.length>0){
             res.send({
@@ -20,6 +24,7 @@ getUrls = async (req, res)=>{
         }
         
     } catch (error) {
+        console.log(":::getUrls error", error);
         res.send({
             success: false,
             message: error
