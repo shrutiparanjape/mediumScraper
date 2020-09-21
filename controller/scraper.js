@@ -10,19 +10,23 @@ let completedQueue = [];
 let currentConnections = 0;
 let completedUrlJson = {}
 
+/**
+ * @description Function to get all urls in medium.com
+ * @param urlQueue Array of URLs to be scraped
+ */
 async function getUrlList (urlQueue) {
     try {
         let allUrls = [];
 
-        //fetch single url from the list to start the scraping of data
-        let url = urlQueue.shift();
+        let url = urlQueue.shift(); // Fetch single url from the list to start the scraping of data
         
-        currentConnections++;
-        console.log("+++++++", currentConnections)
+        currentConnections++; // Increase the count of current connection
 
-        const response = await fetch(url);
+        // Gets an html code of page in response
+        const response = await fetch(url); 
         const htmlText = await response.text();
 
+        // Parse the reponse received and fetch only medium.com related urls 
         const $ = cheerio.load(htmlText)
         hyperlinks = $('a');
         $(hyperlinks).each(function (i, link) {
@@ -30,25 +34,20 @@ async function getUrlList (urlQueue) {
                 allUrls.push($(link).attr('href'));
         });
 
-        //logic to find the duplicate url from all urls
+        // Logic to find the duplicate url from all urls fetched
         if(allUrls){
             await processUrls(allUrls)
             await updateDB(completedUrlJson)
             completedQueue.push(url);
         }
 
-        currentConnections--;
-        console.log("-------", currentConnections)
+        currentConnections--; // Decrement the count of current connection, once a url is processed
 
-        console.log("/////", inQueue.length, currentConnections, currentConnections < maxConnections)
+        console.log(`Length of total urls in queue to be parsed - ${inQueue.length}, current connections - ${currentConnections}`)
 
+        // Run this function on loop until there are urls to be scraped in inQueue array and the current connections are below 6
         while (inQueue.length && currentConnections <= maxConnections) {
-            console.log(">>>>>>", currentConnections)
             getUrlList(inQueue);
-        }
-
-        if(inQueue.length == 0){
-            console.log("$$$$$$$$$ END $$$$$$$$")
         }
 
         return;
@@ -58,46 +57,46 @@ async function getUrlList (urlQueue) {
     }
 };
 
+/**
+ * @description Function to process on the urls scraped from medium.com
+ * @param allUrls Array of all the URLs fetched
+ */
 async function processUrls (allUrls) {
     try {
         allUrls.forEach(newUrl => {
-            // For the original url to be unique.
-            //1. Url is new
-            //2. Params are diff
-            //3. Param values are diff
-
             // Direct match original url with exisitng urls.
             if(completedQueue.includes(newUrl)){
                 // Existing url and already scraped, increase the count of occurance
                 let newUrlSplit = newUrl.split("?");
-                console.log(":::newUrlSplit includes", newUrlSplit, newUrl)
+                console.log(":::newUrlSplit if includes in completed queue", newUrlSplit, newUrl)
                 completedUrlJson[newUrlSplit[0]]["count"] += 1;
             } else {
-                // New url could have diff params or same params diff values.
+                // New url could have diff params or same params with diff values.
                 inQueue.push(newUrl)
 
                 let newUrlSplit = newUrl.split("?");
                 console.log(":::newUrlSplit", newUrlSplit)
                 if(newUrlSplit.length > 1) {
-                    //Url has params
+                    // Url has params
                     let urlParams = new URL(newUrl);
                     let searchParams = new URLSearchParams(urlParams.search);
 
-                    //Matching url component of the url in existing scrapped urls.
+                    // Matching url component of the url in existing scrapped urls.
                     if(newUrlSplit[0] in completedUrlJson) {
                         for(var key of searchParams.keys()) {
                             // Checking for unique params in exisitng params for each url.
                             if(completedUrlJson[newUrlSplit[0]]["params"].includes(key)){
-                                //url already scraped, increase the count of occurance
+                                // Url is already scraped, increase the count of occurance at the end of this for loop
                             } else {
                                 completedUrlJson[newUrlSplit[0]]["params"] = [...completedUrlJson[newUrlSplit[0]]["params"], key]
                             }
                         }
                         completedUrlJson[newUrlSplit[0]]["count"] += 1;
                     } else {
-                        // Url component has not yet been scrapped, initialize with reference count 1.
+                        // Url component has not been scrapped, initialize with reference count 1.
                         paramsArray = []
                         for(var key of searchParams.keys()) {
+                            // Array of params from the url
                             paramsArray.push(key)
                         }
                         completedUrlJson[newUrlSplit[0]] = {
@@ -106,9 +105,9 @@ async function processUrls (allUrls) {
                         }
                     }
                 } else {
-                    //Url does not have params
+                    // Url does not have params
                     if(newUrlSplit[0] in completedUrlJson) {
-                        //Url already scraped, increase the count of occurance
+                        // Url is already scraped, increase the count of occurance
                         completedUrlJson[newUrlSplit[0]]["count"] += 1;
                     } else {
                         // New url initialize with reference count 1.
@@ -129,14 +128,15 @@ async function processUrls (allUrls) {
 async function startScraping (req, res) {
     try {
         inQueue.push(scrapedUrl);
+        // Initial count for the medium.com url
         completedUrlJson = {
             [scrapedUrl] : {
                 params: [],
                 count: 1
             }
         }
-        await urlModel.deleteMany({}) // clear existing data
-        getUrlList(inQueue);
+        await urlModel.deleteMany({}) // Clear existing data before scraping
+        getUrlList(inQueue); // Start the scraping of data
         res.json({ status: "success", message: "Scraping of Data is initiated." });
     } catch (error){
         console.log("::startScraping error", error)
@@ -148,7 +148,7 @@ async function updateDB (completedUrlJson) {
     Object.keys(completedUrlJson).forEach ( key => {
         let query = { url: key },
         urlUpdate = { url: key, ...completedUrlJson[key]},
-        options = { upsert: true, new: true, setDefaultsOnInsert: true };
+        options = { upsert: true, new: true };
         urlModel.findOneAndUpdate(query, urlUpdate, options, function(error, result) {
             if (error) return;
             else if (result) return;
