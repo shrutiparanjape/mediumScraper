@@ -70,14 +70,12 @@ async function processUrls (allUrls) {
             if(completedQueue.includes(newUrl)){
                 // Existing url and already scraped, increase the count of occurance
                 let newUrlSplit = newUrl.split("?");
-                console.log(":::newUrlSplit if includes in completed queue", newUrlSplit, newUrl)
                 completedUrlJson[newUrlSplit[0]]["count"] += 1;
             } else {
                 // New url could have diff params or same params with diff values.
                 inQueue.push(newUrl)
 
                 let newUrlSplit = newUrl.split("?");
-                console.log(":::newUrlSplit", newUrlSplit)
                 if(newUrlSplit.length > 1) {
                     // Url has params
                     let urlParams = new URL(newUrl);
