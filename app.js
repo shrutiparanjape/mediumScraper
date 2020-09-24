@@ -14,7 +14,9 @@ const port = process.env.PORT || 3001;
 // DB connection
 const mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://mongo:27017/medium', { useNewUrlParser: true }).then(data => {
+mongoose.connect('mongodb+srv://root:root@cluster0.1kjiy.mongodb.net/medium', { useNewUrlParser: true }).then(data => {
+
+// mongoose.connect('mongodb://mongo:27017/medium', { useNewUrlParser: true }).then(data => {
   console.log("Successfully connected to DB")
 });
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error:'));

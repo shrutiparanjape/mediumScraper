@@ -1,27 +1,28 @@
 const fetch = require('isomorphic-fetch');
 const cheerio = require('cheerio');
+var Promise = require("bluebird");
 
 const urlModel = require('../model/urlSchema');
 
 const scrapedUrl = "https://medium.com/";
-const maxConnections = 5;
+// const maxConnections = 5;
 let inQueue = [];
 let completedQueue = [];
-let currentConnections = 0;
+// let currentConnections = 0;
 let completedUrlJson = {}
 
 /**
  * @description Function to get all urls in medium.com
  * @param urlQueue Array of URLs to be scraped
  */
-async function getUrlList (urlQueue) {
+async function getUrlList (url) {
     try {
         console.log("Inside getUrlList function")
         let allUrls = [];
 
-        let url = urlQueue.shift(); // Fetch single url from the list to start the scraping of data
+        // let url = urlQueue.shift(); // Fetch single url from the list to start the scraping of data
         
-        currentConnections++; // Increase the count of current connection
+        // currentConnections++; // Increase the count of current connection
 
         // Gets an html code of page in response
         const response = await fetch(url); 
@@ -42,14 +43,24 @@ async function getUrlList (urlQueue) {
             completedQueue.push(url);
         }
 
-        currentConnections--; // Decrement the count of current connection, once a url is processed
+        // currentConnections--; // Decrement the count of current connection, once a url is processed
 
-        console.log(`Length of total urls in queue to be parsed - ${inQueue.length}, current connections - ${currentConnections}`)
+        // console.log(`Length of total urls in queue to be parsed - ${inQueue.length}, current connections - ${currentConnections}`)
 
         // Run this function on loop until there are urls to be scraped in inQueue array and the current connections are below 6
-        while (inQueue.length && currentConnections <= maxConnections) {
-            getUrlList(inQueue);
-        }
+        // while (inQueue.length && currentConnections <= maxConnections) {
+        //     getUrlList(inQueue);
+        // }
+
+        //Handle concurrency for the urlarray
+        await Promise.map(
+            inQueue,
+            async urlInQueue => {
+                console.log("::::call")
+                await getUrlList(urlInQueue);
+            },
+            { concurrency: 5 }
+        );
 
         return;
     } catch (error) {
@@ -131,7 +142,7 @@ async function processUrls (allUrls) {
 async function startScraping (req, res) {
     try {
         console.log("Start the Scraping Process")
-        inQueue.push(scrapedUrl);
+        // inQueue.push(scrapedUrl);
         // Initial count for the medium.com url
         completedUrlJson = {
             [scrapedUrl] : {
@@ -140,7 +151,7 @@ async function startScraping (req, res) {
             }
         }
         await urlModel.deleteMany({}) // Clear existing data before scraping
-        getUrlList(inQueue); // Start the scraping of data
+        getUrlList(scrapedUrl); // Start the scraping of data
         res.json({ status: "success", message: "Scraping of Data is initiated." });
     } catch (error){
         console.log("::startScraping error", error)
